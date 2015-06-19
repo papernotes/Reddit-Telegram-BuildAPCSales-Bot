@@ -1,0 +1,24 @@
+	Post Title = current site-wide promotions thread
+	Item Name = Item Name Unobtainable
+	Calculated Percent Upvotes = 88.87%
+	Reddit Link = http://redd.it/2ti3w3
+	Shared Link = http://www.reddit.com/r/buildapcsales/comments/2ti3w3/current_sitewide_promotions_thread/
+
+	Post Title = [gpu] gigabyte gtx 970 mini itx ($262.49)(amazon warehouse)
+	Item Name =  gigabyte gtx 970 mini itx 
+	Calculated Percent Upvotes = 95.65%
+	Reddit Link = http://redd.it/3ad1gk
+	Shared Link = http://www.amazon.com/gp/offer-listing/B00OQUMGM0/ref=sr_1_17_olp?m=A2L77EE7U53NWQ&s=pc&ie=UTF8&qid=1434682426&sr=1-17&keywords=video+card&condition=used
+
+	Post Title = [combo] amd a10-7700k kaveri 3.4ghz quad-core apu, msi a68hm-e33 fm2+ micro atx mobo, hyperx fury 8gb ddr3 1866 ram, sandisk sdssdp-128g-g25 2.5in 128gb ssd, seagate barracuda st1000dm003 1tb 7200rpm hdd, logisys cs136bk microatx mid tower case w/ 480w power supply (no mir, free ship, $279)
+	Item Name =  amd a10-7700k kaveri 3.4ghz quad-core apu, msi a68hm-e33 fm2+ micro atx mobo, hyperx fury 8gb ddr3 1866 ram, sandisk sdssdp-128g-g25 2.5in 128gb ssd, seagate barracuda st1000dm003 1tb 7200rpm hdd, logisys cs136bk microatx mid tower case w/ 480w power supply 
+	Calculated Percent Upvotes = 93.46%
+	Reddit Link = http://redd.it/3aba62
+	Shared Link = http://www.newegg.com/Product/ComboBundleDetails.aspx?ItemList=Combo.2391062&&&
+
+	Post Title = [cooler] shadow rock slim 135mm fan air cooler ($40)(free shipping) - [expires 6/24]
+	Item Name =  shadow rock slim 135mm fan air cooler 
+	Calculated Percent Upvotes = 100.0%
+	Reddit Link = http://redd.it/3adasp
+	Shared Link = http://www.ncixus.com/products/?sku=96124&vpn=BK010&manufacture=be%20quiet!&promoid=1360
+

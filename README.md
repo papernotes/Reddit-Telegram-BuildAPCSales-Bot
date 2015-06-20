@@ -1,4 +1,4 @@
-# Reddit-r-buildapcsales-Parser
+# Reddit /r/buildapcsales parser
 A practice bot that looks through Reddit's /r/buildapcsales posts and saves submissions with ratings greater than a certain threshold
 
 
@@ -11,3 +11,5 @@ The resulting output to terminal will be a series of submissions and the informa
 # TODO
 - properly exit the program
 - determine the if a deal is worth looking at
+- figure out a good way to run program
+- possibly create a sort of GUI

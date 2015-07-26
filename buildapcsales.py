@@ -1,95 +1,85 @@
+"""
+    Telegram bot that notifies when GPUs are < $120
+"""
 import praw
 import time
+import re
+import herokuDB
+from sqlalchemy import create_engine
+from sqlalchemy import text
 
-# from file import function
+REDDIT_CLIENT = praw.Reddit(user_agent="Searches /r/buildapcsales for sales")
+REDDIT_CLIENT.login(disable_warning=True)
 
-# being praw and log in
-r = praw.Reddit(user_agent = "Searching for Deals in /r/buildapcsales")
-r.login(disable_warning=True)
+CACHE = []          # contains posts we searched
+PHRASES = ['gpu']   # list of phrases for items we want
 
-
-
-# the number of times searched
-searches = 0
-cache = []
-
-print ("")
-print ("Bot Search Started")
-print ("")
+# create the ENGINE for the database
+#ENGINE = create_engine(herokuDB.url)
 
 
-# run_bot looks through submissions and finds matching posts
 def run_bot():
-    # so that "searches" is global and can be reached anywhere
-    global searches
+    global CACHE
+    global PHRASES
+    """
+        Main driver of the bot
+    """
 
-    # enter /r/buildapcsales subreddit
-    subreddit = r.get_subreddit("buildapcsales")
+    '''
+    result = ENGINE.execute("select * from searched_posts")
 
-    # open up the searched posts that have been saved before
-    with open("searched_posts.txt") as searched_posts:
-        # set the cache to be the lines of the post
-        cache = searched_posts.readlines()
-        # strip newlines so we can determine if we searched post already
-        cache = [line.strip('\n') for line in cache]
+    # set up the cache for usage
+    for row in result:
+        TEMP_CACHE.append(str(row[0]))
 
+    for value in TEMP_CACHE:
+        if value not in CACHE:
+            CACHE.append(str(value))
+    '''
 
-    # for the subreddit, get the new posts
-    for submission in subreddit.get_hot(limit = 10):
+    # set up the buildapcsales subreddit
+    subreddit = REDDIT_CLIENT.get_subreddit("buildapcsales")
 
-        print ("Searching...")
-        print ("Submissions searched so far: " + str(searches))
-
-        # set hasDeal to whether or not the post has matching phrases
-        # TODO      hasDeal = any(string in post_title for string in phrases)
-
-
-        # if submission.id not in cache of text file
-        if submission.id not in cache:
-
-            # if the score of the submission is greater than 90% (worth)
-            if (calculateScore(submission) >= 85):
-
-                # determine the value of the submission
-                printStats(submission)
-                storeStats(submission)
-
-                # append to the file the submission id
-                with open("searched_posts.txt", "a") as searched_posts:
-                    searched_posts.write(submission.id)
-                    searched_posts.write('\n')
-
-            # ignore the not as valuable posts
-            else:
-                # append to the file the submission id
-                with open("searched_posts.txt", "a") as searched_posts:
-                    searched_posts.write(submission.id)
-                    searched_posts.write('\n')
-
-        # increment the number of submissions searched
-        searches = searches + 1
-
-    print ("end loop")
+    # search through the hot submissions
+    print ("Searching through hot submissions")
+    for submission in subreddit.get_hot(limit=100):
+        determine_value(submission)
 
 
-# gets only the name of the item based on the [ITEM]NAME(PRICE) format
-def get_itemName(title):
-    # the position of the ']' in the title post
-    try:
-        title = title.split(']')[1]
-        title = title.split('(')[0]
-        return title
-    except:
-        return "Item Name Unobtainable"
+    # search through the new submissions
+    print ("Searching through new submissions")
+    for submission in subreddit.get_new(limit=100):
+        determine_value(submission)
 
 
+def is_under_threshold(submissionTitle):
+    """
+        Determines if the price is under the threshold
+    """
+
+    top_price = 0
+
+    # find the prices in the title
+    prices = re.findall(r'\$(\d+)', submissionTitle)
+
+    # convert values of the prices to int
+    prices = [int(value) for value in prices]
+
+    for price in prices:
+        if price > top_price:
+            top_price = price
+
+        if 100 < top_price and top_price < 150:
+            return True
 
 
-# calcuates the score percentage of the submission
-# returns 0% if the submission's score is 0
-def calculateScore(submission):
+def calculate_score(submission):
+    """
+        Calculates teh score perecentage of the submission
+        Returns 0 if the submission's score is 0
+    """
     # get the submission's upvote ratio
-    ratio = r.get_submission(submission.permalink).upvote_ratio
+    ratio = REDDIT_CLIENT.get_submission(submission.permalink).upvote_ratio
 
     # if the submission's score is 0, ignore it
     if (submission.score == 0):
@@ -111,47 +101,88 @@ def calculateScore(submission):
             return value
 
 
-
-
-# prints out the deal's information to terminal
-def printStats(submission):
-    # sets the post's title to lowercase
+def determine_value(submission):
+    """
+        Determines if the submission is worth looking at
+    """
     post_title = submission.title.lower()
 
-    print ("    DEAL INFORMATION: ")
-    print ("Post Title = " + post_title)    # print the name of the post
-    print ("Item Name = " + get_itemName(post_title))   # get the item name in the post
-    print ("Number of Comments = " + str(submission.num_comments))  # display the nubmer of comments
-    print ("Number of Upvotes = " + str(submission.ups))
-    print ("Submission ID = " + str(submission.id))
-    print ("Calculated Percent Upvotes = " + str(value) + "%")
-    print ("Reddit Link = " + submission.short_link)    # get the shortened link of the post
-    print ("Shared Link = " + submission.url)
-    print ("")
+    if (any(string in post_title for string in PHRASES) and
+        submission.id not in CACHE):
+
+        # Deal under $120 and well-received
+        if is_under_threshold(post_title) and calculate_score(submission) >= 85:
+            print ("\nDeal found under threshold with a good score!")
+            print ("Score is " + str(calculate_score(submission)))
+            print submission.title
+            CACHE.append(submission.id)
+
+        # Deal only under $120
+        elif is_under_threshold(post_title) and not calculate_score(submission) >= 85:
+            print ("\nDeal found under threshold")
+            print submission.title
+            CACHE.append(submission.id)
+
+        # Deal only well-received
+        elif not is_under_threshold(post_title) and calculate_score(submission) >= 85:
+            print ("\nFound a well-received deal!")
+            print ("Score is " + str(calculate_score(submission)))
+            print submission.title
+            CACHE.append(submission.id)
+
+        else:
+            CACHE.append(submission.id)
 
 
-# stores the statistics of the item to a text file
-def storeStats(submission):
-    # sets the post's title to lowercase
-    post_title = submission.title.lower()
-
-    with open("savedStats.txt", "a") as savedStats:
-        savedStats.write("  Post Title = " + post_title + "\n")
-        savedStats.write("  Item Name = " + get_itemName(post_title) + "\n")
-        savedStats.write("  Calculated Percent Upvotes = " + str(value) + "%\n")
-        savedStats.write("  Reddit Link = " + submission.short_link + "\n")
-        savedStats.write("  Shared Link = " + submission.url + "\n")
-        savedStats.write("\n")
 
 
+# Database
+def write_to_file(sub_id):
+    """
+        Save the submissions we searched
+    """
+    if not id_added(sub_id):
+        temp_text = text('insert into searched_posts (post_id) values(:postID)')
+        ENGINE.execute(temp_text, postID=sub_id)
 
-# running the bot continuously
+
+def id_added(sub_id):
+    """
+        Check to see if the item is already in the database
+    """
+
+    is_added_text = text("select * from searched_posts where post_id = :postID")
+    if (ENGINE.execute(is_added_text, postID=sub_id).rowcount != 0):
+        return True
+    else:
+        return False
+
+
+def clear_column():
+    """
+        Clear our column/database if our rowcount is too high
+    """
+
+    num_rows = ENGINE.execute("select * from searched_posts")
+    if (num_rows.rowcount > 2000):
+        ENGINE.execute("delete from searched_posts")
+        print("Cleared database")
+
+
+print ("Bot started")
+run_bot()
+
+# TODO 
+''' For later      Create a counter for the clearing of the column
 while True:
-    # run the bot
+    # run the bot continuously
     run_bot()
 
-    # clear the cache
-    open("searched_posts.txt", "w").close()
+    # reset the cache
+    TEMP_CACHE = []
 
-    # rest for 10 seconds
-    time.sleep(10)
+    print ("Sleeping")
+    time.sleep(300)
+'''
+
+

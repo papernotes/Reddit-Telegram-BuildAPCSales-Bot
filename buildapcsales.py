@@ -14,7 +14,7 @@ REDDIT_CLIENT = praw.Reddit(user_agent="Searches /r/buildapcsales for sales")
 REDDIT_CLIENT.login(disable_warning=True)
 
 CACHE = []          # contains posts we searched
-PHRASES = ['gpu']   # list of phrases for items we want
+PHRASES = ['gpu', 'keyboard']   # list of phrases for items we want
 
 # create the telegram bot
 tg_bot = telebot.TeleBot(tgTOKEN.TOKEN)
@@ -134,7 +134,6 @@ def determine_value(submission):
             print ("\nFound a well-received deal!")
             print ("Score is " + str(calculate_score(submission)))
             print submission.title
-            CACHE.append(submission.id)
             send_message(submission, 3)
 
         else:

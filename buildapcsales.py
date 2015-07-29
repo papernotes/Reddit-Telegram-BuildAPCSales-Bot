@@ -5,6 +5,8 @@ import praw
 import time
 import re
 import herokuDB
+import telebot      # Telegram wrapper
+import tgTOKEN      # contains TOKEN
 from sqlalchemy import create_engine
 from sqlalchemy import text
 
@@ -13,6 +15,10 @@ REDDIT_CLIENT.login(disable_warning=True)
 
 CACHE = []          # contains posts we searched
 PHRASES = ['gpu']   # list of phrases for items we want
+
+# create the telegram bot
+tg_bot = telebot.TeleBot(tgTOKEN.TOKEN)
+users_list = []     # list of users to send message to
 
 # create the ENGINE for the database
 #ENGINE = create_engine(herokuDB.url)
@@ -115,13 +121,13 @@ def determine_value(submission):
             print ("\nDeal found under threshold with a good score!")
             print ("Score is " + str(calculate_score(submission)))
             print submission.title
-            CACHE.append(submission.id)
+            send_message(submission, 1)
 
         # Deal only under $120
         elif is_under_threshold(post_title) and not calculate_score(submission) >= 85:
             print ("\nDeal found under threshold")
             print submission.title
-            CACHE.append(submission.id)
+            send_message(submission, 2)
 
         # Deal only well-received
         elif not is_under_threshold(post_title) and calculate_score(submission) >= 85:
@@ -129,9 +135,60 @@ def determine_value(submission):
             print ("Score is " + str(calculate_score(submission)))
             print submission.title
             CACHE.append(submission.id)
+            send_message(submission, 3)
 
         else:
             CACHE.append(submission.id)
+
+
+def send_message(submission, deal_type):
+    for users in users_list:
+
+        # Deal under threshold and has good score
+        if deal_type == 1:
+            tg_bot.send_message(users, "Deal found under threshold with " +
+                                "a good score!" + "\n\nScore is " +
+                                str(calculate_score(submission)) +
+                                "\n\nTitle: " + str(submission.title) +
+                                "\nLink: " + str(submission.short_link))
+
+        # Under threshold deal
+        elif deal_type == 2:
+            tg_bot.send_message(users, "Deal found under threshold!" +
+                                "\n\nTitle: " + str(submission.title) +
+                                "\nLink: " + str(submission.short_link))
+
+        # Well-received deal
+        else:
+            tg_bot.send_message(users, "Found a well-received deal!" +
+                                "\n\nScore is " + 
+                                str(calculate_score(submission)) +
+                                "\n\nTitle: " + str(submission.title) +
+                                "\nLink: " + str(submission.short_link))
+
+        CACHE.append(submission.id)
+
+
+
+@tg_bot.message_handler(commands=['start'])
+def welcome(message):
+    tg_bot.reply_to(message, "Hello! You've been added to BuildAPCSalesBot's"+
+                 " recpients! Type '/end' to stop messages from this bot.")
+
+    # Add the user to the list of recipients
+    users_list.append(message.chat.id)
+    print (str(message.chat.id) + " Added")
+
+
+@tg_bot.message_handler(commands=['end'])
+def remove(message):
+    bot.reply_to(message, "You've been removed from the list of recipients!\n"+
+                 "Type '/start/ to re-add yourself to the list again.")
+
+    # remove user from the list
+    users_list.remove(message.chat.id)
+    print (str(message.chat.id) + " Removed")
+
 
 
 
@@ -170,11 +227,23 @@ def clear_column():
 
 
 print ("Bot started")
+
+try:
+    tg_bot.polling()
+except Exception:
+    pass
+
 run_bot()
 
 # TODO 
 ''' For later      Create a counter for the clearing of the column
 while True:
+    try:
+        time.sleep(10)
+        for users in users_list:
+            bot.send_message(users, "Test")
+    except:
+        break
     # run the bot continuously
     run_bot()
 

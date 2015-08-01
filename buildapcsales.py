@@ -4,7 +4,7 @@
 import praw
 import time
 import re
-import herokuDB
+import heroDB
 import telebot      # Telegram wrapper
 import tgTOKEN      # contains TOKEN
 from sqlalchemy import create_engine
@@ -14,6 +14,7 @@ REDDIT_CLIENT = praw.Reddit(user_agent="Searches /r/buildapcsales for sales")
 REDDIT_CLIENT.login(disable_warning=True)
 
 CACHE = []          # contains posts we searched
+TEMP_CACHE = []     # temporary to help develop CACHE
 PHRASES = ['gpu', 'keyboard']   # list of phrases for items we want
 
 # create the telegram bot
@@ -21,7 +22,7 @@ tg_bot = telebot.TeleBot(tgTOKEN.TOKEN)
 users_list = []     # list of users to send message to
 
 # create the ENGINE for the database
-#ENGINE = create_engine(herokuDB.url)
+ENGINE = create_engine(heroDB.url)
 
 
 def run_bot():
@@ -31,7 +32,6 @@ def run_bot():
         Main driver of the bot
     """
 
-    '''
     result = ENGINE.execute("select * from searched_posts")
 
     # set up the cache for usage
@@ -41,7 +41,6 @@ def run_bot():
     for value in TEMP_CACHE:
         if value not in CACHE:
             CACHE.append(str(value))
-    '''
 
     # set up the buildapcsales subreddit
     subreddit = REDDIT_CLIENT.get_subreddit("buildapcsales")
@@ -166,9 +165,11 @@ def send_message(submission, deal_type):
                                 "\nLink: " + str(submission.short_link))
 
         CACHE.append(submission.id)
+        write_to_file(submission.id)
 
 
 
+# Telegram commands
 @tg_bot.message_handler(commands=['start'])
 def welcome(message):
     tg_bot.reply_to(message, "Hello! You've been added to BuildAPCSalesBot's"+
@@ -176,18 +177,24 @@ def welcome(message):
 
     # Add the user to the list of recipients
     users_list.append(message.chat.id)
-    print (str(message.chat.id) + " Added")
+    print (str(message.chat.id) + " (" + message.chat.first_name + ")" + 
+           " Added")
 
 
 @tg_bot.message_handler(commands=['end'])
 def remove(message):
-    bot.reply_to(message, "You've been removed from the list of recipients!\n"+
+    tg_bot.reply_to(message, "You've been removed from the list of recipients!\n"+
                  "Type '/start/ to re-add yourself to the list again.")
 
     # remove user from the list
     users_list.remove(message.chat.id)
     print (str(message.chat.id) + " Removed")
 
+
+@tg_bot.message_handler(commands=['help'])
+def help(message):
+    tg_bot.reply_to(message, "/start to add yourself to list\n" +
+                 "/end to end messages")
 
 
 
@@ -225,6 +232,8 @@ def clear_column():
         print("Cleared database")
 
 
+
+# Running the bot
 print ("Bot started")
 
 try:
@@ -232,17 +241,8 @@ try:
 except Exception:
     pass
 
-run_bot()
 
-# TODO 
-''' For later      Create a counter for the clearing of the column
 while True:
-    try:
-        time.sleep(10)
-        for users in users_list:
-            bot.send_message(users, "Test")
-    except:
-        break
     # run the bot continuously
     run_bot()
 
@@ -251,6 +251,3 @@ while True:
 
     print ("Sleeping")
     time.sleep(300)
-'''
-
-
